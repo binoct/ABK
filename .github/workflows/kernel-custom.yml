@@ -18,7 +18,7 @@ on:
           - android14
           - android15
           - android16
-        default: android12
+        default: android13
       kernel_version:
         description: "内核版本"
         required: true
@@ -29,22 +29,22 @@ on:
           - "6.1"
           - "6.6"
           - "6.12"
-        default: "5.10"
+        default: "5.15"
       sub_level:
-        description: "子版本号 (如 66, 198, X)"
+        description: "子版本号 (如 178, 66, X)"
         required: true
         type: string
-        default: "66"
+        default: "178"
       os_patch_level:
-        description: "安全补丁级别 (如 2022-01, lts)"
+        description: "安全补丁级别 (如 2025-03, lts；必须与 sub_level 匹配)"
         required: true
         type: string
-        default: "2022-01"
+        default: "2025-03"
       revision:
-        description: "修订版本 (如 r11, 仅 5.10 需要)"
+        description: "修订版本 (如 r11，仅 android12/5.10 构建 Boot 镜像时需要，其他版本留空)"
         required: false
         type: string
-        default: "r11"
+        default: ""
 
       # ==================== KernelSU 配置 ====================
       kernelsu_variant:

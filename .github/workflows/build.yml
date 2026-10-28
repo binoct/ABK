@@ -2703,6 +2703,23 @@ jobs:
             fi
           fi
 
+      - name: 修复 SUSFS 所需的 KSU 侧符号
+        if: inputs.enable_susfs && inputs.ksu_variant != 'None'
+        env:
+          BASH_ENV: ${{ inputs.source_mode == 'custom_git' && format('{0}/.github/scripts/custom-source-feature-env.sh', github.workspace) || '' }}
+          ABK_FEATURE_ID: susfs
+          ABK_FEATURE_FAILURE_MESSAGE: "SUSFS/KSU symbol export integration failed"
+        working-directory: ${{ env.KERNEL_ROOT }}
+        run: |
+          set -euo pipefail
+          # 上游 SUSFS 补丁在内核侧直接调用 KSU 的 selinux_hide / preinit 助手：
+          #   security/selinux/{hooks.c,selinuxfs.c} -> my_write_context/my_write_access/my_setprocattr
+          #   fs/exec.c -> ksu_setup_preinit_file/ksu_preinit_handle_post_execveat
+          # 旧版 KSU（如 BakaSU 9dbce02）要么把这些实现关在
+          # `#ifndef KSU_COMPAT_HAS_SUSFS_FEATURE_SELINUX_HIDE` 里，要么根本没有 preinit，
+          # 于是链接期报 undefined symbol。这里按源码能力补齐/回退，详见脚本注释。
+          python3 "$GITHUB_WORKSPACE/.github/scripts/fix-susfs-ksu-symbols.py" "$KERNEL_ROOT"
+
       - name: 确保 SUSFS Kconfig 与核心对象
         if: inputs.enable_susfs && inputs.ksu_variant != 'None'
         env:
