@@ -2686,6 +2686,21 @@ jobs:
             fi
 
             fix_task_mmu_vma_pad_start
+
+            # 最终一致性校验：修复「上下文行缺失」导致的 SUSFS 头部 hunk reject。
+            # 上游 50_add_susfs_in_gki-*.patch 的 fs/namespace.c / fs/proc/task_mmu.c
+            # 首个 hunk 把 `#include <trace/hooks/blk.h>` 和 `#include <trace/hooks/mm.h>`
+            # 当作上下文行，而 AOSP common 树里没有这两行 —— hunk 被拒后补丁其余部分
+            # 照常应用，文件开始使用 SUSFS 符号却没有头文件/前置声明，编译报：
+            #   'CL_COPY_MNT_NS' undeclared / implicit declaration of
+            #   susfs_is_current_ksu_domain / SUSFS_IS_INODE_SUS_MAP ...
+            # 这里按「符号是否被使用」幂等补齐（不依赖 sub_level 白名单，5.15.178 这类
+            # 新 LTS 点版本没有历史兜底补丁可用），并清掉已修复的 .rej。
+            # 放在版本专属修复之后，确保它是这两个文件的最后一次改动。
+            if ! python3 "$GITHUB_WORKSPACE/.github/scripts/fix-susfs-header-rejects.py" "$KERNEL_ROOT/common"; then
+              echo "::error::SUSFS 头部 include/声明修复失败，继续编译会因未声明符号中断"
+              exit 1
+            fi
           fi
 
       - name: 确保 SUSFS Kconfig 与核心对象
